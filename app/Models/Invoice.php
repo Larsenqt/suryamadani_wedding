@@ -1,0 +1,124 @@
+<?php
+// app/Models/Invoice.php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Invoice extends Model
+{
+    use HasFactory;
+
+    protected $table = 'invoices';
+
+    protected $fillable = [
+        'invoice_number',
+        'customer_name',
+        'customer_email',
+        'customer_phone',
+        'customer_address',
+        'order_date',
+        'due_date',
+        'subtotal',
+        'tax',
+        'discount',
+        'dp_amount',
+        'remaining_amount',
+        'dp_status',
+        'dp_due_date',
+        'total_amount',
+        'notes',
+        'status',
+        'created_by',
+        'approved_at',
+        'paid_at',
+    ];
+
+    protected $casts = [
+        'order_date' => 'date',
+        'due_date' => 'date',
+        'dp_due_date' => 'date',
+        'approved_at' => 'datetime',
+        'paid_at' => 'datetime',
+        'subtotal' => 'decimal:2',
+        'tax' => 'decimal:2',
+        'discount' => 'decimal:2',
+        'dp_amount' => 'decimal:2',
+        'remaining_amount' => 'decimal:2',
+        'total_amount' => 'decimal:2',
+    ];
+
+    public function items()
+    {
+        return $this->hasMany(InvoiceItem::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    // Generate invoice number otomatis
+    public static function generateInvoiceNumber()
+    {
+        $prefix = 'INV';
+        $year = date('Y');
+        $month = date('m');
+        
+        $count = self::whereYear('created_at', $year)
+                    ->whereMonth('created_at', $month)
+                    ->count() + 1;
+        
+        return sprintf('%s-%s-%s-%04d', $prefix, $year, $month, $count);
+    }
+
+    // Hitung sisa pembayaran setelah DP
+    public function calculateRemainingAmount()
+    {
+        return $this->total_amount - $this->dp_amount;
+    }
+
+    // Update DP status berdasarkan DP amount
+    public function updateDpStatus()
+    {
+        if ($this->dp_amount >= $this->total_amount) {
+            $this->dp_status = 'paid';
+        } elseif ($this->dp_amount > 0) {
+            $this->dp_status = 'partial';
+        } else {
+            $this->dp_status = 'unpaid';
+        }
+        $this->remaining_amount = $this->calculateRemainingAmount();
+        $this->save();
+    }
+
+    // Status badge helper
+    public function getStatusBadgeAttribute()
+    {
+        switch ($this->status) {
+            case 'draft':
+                return '<span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">Draft</span>';
+            case 'approved':
+                return '<span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">Approved</span>';
+            case 'paid':
+                return '<span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Paid</span>';
+            case 'cancelled':
+                return '<span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Cancelled</span>';
+            default:
+                return '<span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">' . $this->status . '</span>';
+        }
+    }
+
+    public function getDpStatusBadgeAttribute()
+    {
+        switch ($this->dp_status) {
+            case 'paid':
+                return '<span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">DP Lunas</span>';
+            case 'partial':
+                return '<span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">DP Sebagian</span>';
+            default:
+                return '<span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Belum DP</span>';
+        }
+    }
+}

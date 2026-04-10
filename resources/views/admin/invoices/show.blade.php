@@ -204,6 +204,22 @@
             background: #059669;
         }
 
+        .btn-settle {
+            padding: 0.5rem 1rem;
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-settle:hover {
+            background: #7c3aed;
+            transform: translateY(-1px);
+        }
+
         .btn-cancel {
             padding: 0.5rem 1rem;
             background: #ef4444;
@@ -541,6 +557,15 @@
                 <form action="{{ route('admin.invoices.mark-paid', $invoice) }}" method="POST">
                     @csrf
                     <button type="submit" class="btn-paid">✓ Mark as Paid</button>
+                </form>
+            @endif
+            
+            {{-- Tombol Pelunasan untuk sisa pembayaran --}}
+            @if($invoice->status == 'approved' && $invoice->remaining_amount > 0)
+                <form action="{{ route('admin.invoices.settle', $invoice) }}" method="POST" 
+                      onsubmit="return confirm('Lunaskan sisa pembayaran Rp {{ number_format($invoice->remaining_amount, 0, ',', '.') }}?')">
+                    @csrf
+                    <button type="submit" class="btn-settle">💰 Pelunasan (Rp {{ number_format($invoice->remaining_amount, 0, ',', '.') }})</button>
                 </form>
             @endif
             

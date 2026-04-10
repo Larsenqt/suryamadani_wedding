@@ -51,6 +51,84 @@ class OrderController extends Controller
         return view('admin.orders.edit', compact('order'));
     }
 
+    public function destroy($uuid)
+{
+    $order = Order::where('uuid', $uuid)->firstOrFail();
+    
+    try {
+        // Cek status order sebelum hapus
+        // Jika order sudah approved, kembalikan stok terlebih dahulu
+        if ($order->status == 'approved' || $order->status == 'completed') {
+            foreach ($order->details as $detail) {
+                $item = $detail->item;
+                $item->stock += $detail->qty;
+                $item->save();
+            }
+        }
+        
+        // Simpan informasi untuk pesan sukses
+        $orderId = $order->uuid;
+        $orderNumber = '#' . substr($order->uuid, 0, 8);
+        
+        // Hapus order beserta detailnya (cascade akan menangani detail)
+        $order->delete();
+        
+        return redirect()->route('admin.orders.index')
+            ->with('success', "Pesanan {$orderNumber} berhasil dihapus" . 
+                   ($order->status == 'approved' || $order->status == 'completed' ? 
+                   ' dan stok telah dikembalikan' : ''));
+                   
+    } catch (\Exception $e) {
+        return redirect()->route('admin.orders.index')
+            ->with('error', 'Gagal menghapus pesanan: ' . $e->getMessage());
+    }
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'order_ids' => 'required|array',
+            'order_ids.*' => 'exists:orders,uuid'
+        ]);
+        
+        $deletedCount = 0;
+        $errors = [];
+        
+        foreach ($request->order_ids as $uuid) {
+            try {
+                $order = Order::where('uuid', $uuid)->first();
+                
+                if ($order) {
+
+                    if ($order->status == 'approved' || $order->status == 'completed') {
+                        foreach ($order->details as $detail) {
+                            $item = $detail->item;
+                            $item->stock += $detail->qty;
+                            $item->save();
+                        }
+                    }
+                    
+                    $order->delete();
+                    $deletedCount++;
+                }
+            } catch (\Exception $e) {
+                $errors[] = '#' . substr($uuid, 0, 8);
+            }
+        }
+        
+        if ($deletedCount > 0) {
+            $message = "Berhasil menghapus {$deletedCount} pesanan";
+            if (!empty($errors)) {
+                $message .= ". Gagal menghapus: " . implode(', ', $errors);
+            }
+            return redirect()->route('admin.orders.index')
+                ->with('success', $message);
+        }
+        
+        return redirect()->route('admin.orders.index')
+            ->with('error', 'Gagal menghapus pesanan yang dipilih');
+    }
+
     public function update(Request $request, $uuid)
     {
         $order = Order::where('uuid', $uuid)->firstOrFail();
@@ -171,14 +249,10 @@ class OrderController extends Controller
         return back()->with('success', 'Order selesai');
     }
 
-    /**
-     * Export orders to Excel with filters
-     */
     public function exportExcel(Request $request)
     {
         $query = Order::with('user');
 
-        // Filter berdasarkan rentang tanggal
         if ($request->filled('start_date') && $request->filled('end_date')) {
             $query->whereBetween('created_at', [
                 $request->start_date . ' 00:00:00',
@@ -186,13 +260,11 @@ class OrderController extends Controller
             ]);
         }
 
-        // Filter berdasarkan bulan dan tahun
         if ($request->filled('month') && $request->filled('year')) {
             $query->whereMonth('created_at', $request->month)
                   ->whereYear('created_at', $request->year);
         }
 
-        // Filter berdasarkan status
         if ($request->filled('status') && $request->status != 'all') {
             $query->where('status', $request->status);
         }

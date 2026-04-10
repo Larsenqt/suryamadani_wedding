@@ -1,5 +1,5 @@
 <?php
-// app/Models/Invoice.php
+// app/Models/Invoice.php - COPY PASTE SELURUHNYA
 
 namespace App\Models;
 
@@ -18,7 +18,8 @@ class Invoice extends Model
         'customer_email',
         'customer_phone',
         'customer_address',
-        'order_date',
+        'order_date',      
+        'event_date',      
         'due_date',
         'subtotal',
         'tax',
@@ -37,6 +38,7 @@ class Invoice extends Model
 
     protected $casts = [
         'order_date' => 'date',
+        'event_date' => 'date',      
         'due_date' => 'date',
         'dp_due_date' => 'date',
         'approved_at' => 'datetime',
@@ -59,18 +61,42 @@ class Invoice extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    // Generate invoice number otomatis
+    // Auto calculate remaining amount before save
+    protected static function booted()
+    {
+        static::saving(function ($invoice) {
+            // Auto calculate remaining amount
+            $invoice->remaining_amount = $invoice->total_amount - $invoice->dp_amount;
+            
+            // Auto update dp_status
+            if ($invoice->dp_amount >= $invoice->total_amount) {
+                $invoice->dp_status = 'paid';
+            } elseif ($invoice->dp_amount > 0) {
+                $invoice->dp_status = 'partial';
+            } else {
+                $invoice->dp_status = 'unpaid';
+            }
+            
+            // Auto update status if dp is fully paid
+            if ($invoice->dp_amount >= $invoice->total_amount && $invoice->status != 'paid') {
+                $invoice->status = 'paid';
+                $invoice->paid_at = now();
+            }
+        });
+    }
+
+    /**
+     * GENERATE INVOICE NUMBER - PALING AMAN (TANPA MIGRASI)
+     * Menggunakan timestamp + random + unique check
+     */
     public static function generateInvoiceNumber()
     {
-        $prefix = 'INV';
-        $year = date('Y');
-        $month = date('m');
+        do {
+            // Format: INV-20260409-143025-1234 (TahunBulanTanggal-JamMenitDetik-Random)
+            $invoiceNumber = 'INV-' . date('Ymd') . '-' . date('His') . '-' . rand(1000, 9999);
+        } while (self::where('invoice_number', $invoiceNumber)->exists());
         
-        $count = self::whereYear('created_at', $year)
-                    ->whereMonth('created_at', $month)
-                    ->count() + 1;
-        
-        return sprintf('%s-%s-%s-%04d', $prefix, $year, $month, $count);
+        return $invoiceNumber;
     }
 
     // Hitung sisa pembayaran setelah DP

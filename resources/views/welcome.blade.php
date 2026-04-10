@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name', 'SuryaMadani') }} - Wedding & Party Rentals</title>
+    <title> Wedding & Party Rentals</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -699,11 +699,15 @@
         <div class="footer-container">
             <div class="footer-col">
                 <h4>SuryaMadani</h4>
-                <p>Wedding & Party Rentals solusi lengkap untuk acara spesial Anda. Berpengalaman sejak 2015.</p>
+                <p>Wedding & Party Rentals solusi lengkap untuk acara spesial Anda.</p>
                 <div class="social-links">
-                    <a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a>
-                    <a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/></svg></a>
-                    <a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5"/></svg></a>
+                        <a href="https://www.instagram.com/suryamadani_wedding?igsh=MTRhaWt3bW54MHRmMw==">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                                <path d="M16 11.37a4 4 0 1 1-7.75 1.13 4 4 0 0 1 7.75-1.13z"/>
+                                <line x1="17.5" y1="6.5" x2="17.5" y2="6.5"/>
+                            </svg>
+                        </a>
                 </div>
             </div>
             <div class="footer-col">
@@ -724,9 +728,9 @@
             </div>
             <div class="footer-col">
                 <h4>Kontak</h4>
-                <p>📞 +62 813 4648 067</p>
-                <p>✉️ info@suryamadani.com</p>
-                <p>📍 Maospati - Magetan</p>
+                <p>📞 Admin 1: 082-244-735-038</p>
+                <p>📞 Admin 2: 0888 4088 042</p>
+                <p>📍 Desa Sugihwaras No. 19 RT.26 / 02 Maospati Kab. Magetan </p>
                 <p>🕐 Senin - Sabtu: 09:00 - 18:00</p>
             </div>
             <div class="footer-col">

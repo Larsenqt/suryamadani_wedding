@@ -147,27 +147,6 @@
             @endif
         </div>
     </div>
-
-    <!-- Help Section - Elegant -->
-    <div class="help-card">
-        <div class="help-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 16v-4M12 8h.01"/>
-            </svg>
-        </div>
-        <div class="help-content">
-            <h4>Butuh Bantuan?</h4>
-            <p>Tim customer service kami siap membantu Anda 24/7</p>
-        </div>
-        <a href="#" class="help-btn">
-            Hubungi CS
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 2L15 9M22 2v7m0-7h-7"/>
-                <path d="M16 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h5"/>
-            </svg>
-        </a>
-    </div>
 </div>
 
 <style>

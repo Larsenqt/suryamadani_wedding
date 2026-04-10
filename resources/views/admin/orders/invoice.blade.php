@@ -411,8 +411,7 @@
     <div class="notes-section">
         <div class="notes-title">CATATAN PENTING</div>
         <ul class="notes-list">
-            <li>Pelunasan dilakukan H-1 sebelum acara</li>
-            <li>Pembayaran via transfer ke rekening BNI 1234567890 a.n Surya Madani</li>
+            <li>Pembayaran via cash/transfer ke rekening Bank Mandiri 1710018817083 a.n DWI ANGGRIAWAN</li>
             <li>Barang akan diantar H-1 acara atau sesuai kesepakatan</li>
             <li>Kerusakan barang menjadi tanggung jawab penyewa</li>
         </ul>

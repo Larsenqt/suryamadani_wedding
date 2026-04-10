@@ -4,14 +4,13 @@
 
 @section('content')
 <style>
-    /* Catalog Container */
+
     .catalog-container {
         max-width: 1400px;
         margin: 0 auto;
         padding: 2rem;
     }
 
-    /* Header */
     .catalog-header {
         margin-bottom: 2rem;
     }
@@ -30,7 +29,6 @@
         color: #64748b;
     }
 
-    /* Filter Section */
     .filter-section {
         background: white;
         border-radius: 1rem;
@@ -77,7 +75,6 @@
         background: #1e293b;
     }
 
-    /* Items Grid */
     .items-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -85,7 +82,6 @@
         margin-bottom: 2rem;
     }
 
-    /* Product Card - Marketplace Style */
     .product-card {
         background: white;
         border-radius: 1rem;
@@ -208,7 +204,6 @@
         transform: none;
     }
 
-    /* Modal Styles */
     .modal {
         display: none;
         position: fixed;
@@ -419,7 +414,6 @@
         cursor: not-allowed;
     }
 
-    /* Toast Notification */
     .toast {
         position: fixed;
         bottom: 2rem;
@@ -674,7 +668,7 @@
             if (data.success) {
                 showToast(data.message, 'success');
                 closeModal();
-                // Update cart count
+                
                 const countResponse = await fetch('{{ route("customer.cart.count") }}');
                 const countData = await countResponse.json();
                 const cartCount = document.querySelector('.cart-count');
@@ -694,7 +688,6 @@
         window.location.href = `{{ route("customer.catalog") }}?type=${type}&search=${search}`;
     }
 
-    // Close modal when clicking outside
     window.onclick = function(event) {
         const modal = document.getElementById('itemModal');
         if (event.target === modal) {

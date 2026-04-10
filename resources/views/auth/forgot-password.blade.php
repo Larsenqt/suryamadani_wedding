@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name', 'Laravel') }} - Lupa Password</title>
+    <title>Lupa Password</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -273,7 +273,6 @@
             @else
                 <div style="width: 100%; height: 100%; background: #0f172a; display: flex; align-items: center; justify-content: center; color: #94a3b8;">
                     <div style="text-align: center;">
-                        <div style="font-size: 48px;">🎪</div>
                         <div style="margin-top: 16px;">SuryaMadani</div>
                     </div>
                 </div>

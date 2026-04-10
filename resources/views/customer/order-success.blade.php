@@ -1,14 +1,14 @@
-@extends('layouts.customer') 
+@extends('layouts.customer')
 
-@section('title', 'Order Succes')
+@section('title', 'Order Success')
 
 @section('content')
 <div class="container" style="max-width: 800px; margin: 0 auto; padding: 2rem;">
     <div class="success-card" style="background: white; border-radius: 1rem; padding: 2rem; text-align: center; border: 1px solid #e9eef3; box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.08);">
         <div class="success-icon" style="width: 80px; height: 80px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 3rem;">
-            ✅
+            ✓
         </div>
-        <h1 style="color: #166534; margin-bottom: 0.5rem;">Pesanan Berhasil!</h1>
+        <h1 style="color: #166534; margin-bottom: 0.5rem;">Pesanan Berhasil</h1>
         <p style="color: #64748b;">Terima kasih telah memesan. Pesanan Anda akan segera diproses.</p>
 
         <div class="order-info" style="background: #f8fafc; border-radius: 0.75rem; padding: 1rem; margin: 1.5rem 0; text-align: left;">
@@ -44,12 +44,59 @@
             </div>
         </div>
 
+        <div style="margin: 1.5rem 0; padding: 1rem; background: #f8fafc; border-radius: 0.75rem; border: 1px solid #e2e8f0;">
+            <div style="margin-bottom: 0.75rem;">
+                <span style="font-weight: 600; color: #0f172a;">Konfirmasi Pesanan</span>
+            </div>
+            <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 1rem; line-height: 1.5;">
+                Konfirmasi pesanan Anda melalui WhatsApp untuk mempercepat proses pemesanan.
+            </p>
+            
+            @php
+                $phoneNumber = '6282244735038';
+                
+
+                $whatsappMessage = "Halo Admin SuryaMadani,\n\n";
+                $whatsappMessage .= "KONFIRMASI PEMESANAN\n\n";
+                $whatsappMessage .= "Saya ingin mengkonfirmasi pesanan berikut:\n\n";
+                $whatsappMessage .= "================================\n";
+                $whatsappMessage .= "DETAIL PESANAN\n";
+                $whatsappMessage .= "================================\n";
+                $whatsappMessage .= "ID Pesanan: {$order->uuid}\n";
+                $whatsappMessage .= "Tanggal Sewa: " . date('d/m/Y', strtotime($order->order_date)) . "\n";
+                $whatsappMessage .= "Alamat: {$order->address}\n";
+                $whatsappMessage .= "Telepon: {$order->phone}\n";
+                $whatsappMessage .= "Total Pembayaran: Rp " . number_format($order->total_price, 0, ',', '.') . "\n\n";
+                $whatsappMessage .= "================================\n";
+                $whatsappMessage .= "ITEM YANG DIPESAN\n";
+                $whatsappMessage .= "================================\n";
+                
+                foreach($order->details as $detail) {
+                    $whatsappMessage .= "- {$detail->item->name} (Jumlah: {$detail->qty})\n";
+                }
+                
+                $whatsappMessage .= "\n================================\n";
+                $whatsappMessage .= "Mohon segera diproses.\n\n";
+                $whatsappMessage .= "Terima kasih,\n";
+                $whatsappMessage .= "{$order->user->name}";
+                
+                // URL Encode pesan
+                $whatsappMessageEncoded = str_replace("\n", "%0A", $whatsappMessage);
+                $whatsappUrl = "https://wa.me/{$phoneNumber}?text={$whatsappMessageEncoded}";
+            @endphp
+            
+            <a href="{{ $whatsappUrl }}" target="_blank" 
+               style="display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.75rem; background: #25D366; color: white; border-radius: 0.5rem; text-decoration: none; font-weight: 500; transition: all 0.2s; border: none; cursor: pointer;">
+                Konfirmasi Pesanan via WhatsApp
+            </a>
+        </div>
+
         <div class="btn-group" style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
             <a href="{{ route('customer.catalog') }}" class="btn-secondary" style="background: white; color: #475569; padding: 0.75rem 1.5rem; border-radius: 0.5rem; text-decoration: none; font-weight: 500; border: 1px solid #e2e8f0;">
-                ← Lanjut Belanja
+                Lanjut Belanja
             </a>
             <a href="{{ route('customer.orders.history') }}" class="btn-primary" style="background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); color: white; padding: 0.75rem 1.5rem; border-radius: 0.5rem; text-decoration: none; font-weight: 500;">
-                Lihat Riwayat Pesanan →
+                Lihat Riwayat Pesanan
             </a>
         </div>
     </div>
@@ -62,6 +109,9 @@
         }
         .btn-group {
             flex-direction: column;
+        }
+        .btn-group a {
+            text-align: center;
         }
     }
 </style>

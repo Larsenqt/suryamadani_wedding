@@ -93,6 +93,10 @@
                             <td class="value-col">{{ $invoice->due_date ? $invoice->due_date->format('d M Y') : '-' }}</td>
                         </tr>
                         <tr>
+                            <td class="label-col">Tgl. Acara</td>
+                            <td class="value-col">{{ $invoice->event_date ? $invoice->event_date->format('d M Y') : '-' }}</td>
+                        </tr>
+                        <tr>
                             <td class="label-col">Metode</td>
                             <td class="value-col">Transfer / Cash</td>
                         </tr>
@@ -170,8 +174,18 @@
         @endif
         @endif
     </table>
-
-
+    
+    <!-- NOTES -->
+    <div class="notes-section">
+        <div class="notes-title">CATATAN PENTING</div>
+        <ul class="notes-list">
+            <li>Pembayaran via cash/transfer ke rekening Bank Mandiri 1710018817083 a.n DWI ANGGRIAWAN</li>
+            <li>Barang akan diantar H-1 acara atau sesuai kesepakatan</li>
+            <li>Kerusakan barang menjadi tanggung jawab penyewa</li>
+            <li>Nomer Wa: 082244735038 atau 08884088042 </li>
+        </ul>
+    </div>
+    
     <!-- FOOTER -->
     <div class="footer">
         <div>Terima kasih atas kepercayaan Anda</div>

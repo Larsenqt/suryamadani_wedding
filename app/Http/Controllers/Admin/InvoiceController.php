@@ -9,6 +9,8 @@ use App\Models\InvoiceItem;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
+use App\Exports\InvoicesExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class InvoiceController extends Controller
 {
@@ -18,7 +20,7 @@ class InvoiceController extends Controller
 
         if ($request->filled('search')) {
             $query->where('invoice_number', 'like', '%' . $request->search . '%')
-                  ->orWhere('customer_name', 'like', '%' . $request->search . '%');
+                ->orWhere('customer_name', 'like', '%' . $request->search . '%');
         }
 
         if ($request->filled('status') && $request->status != 'all') {
@@ -34,7 +36,18 @@ class InvoiceController extends Controller
             'paid' => Invoice::where('status', 'paid')->count(),
         ];
 
-        return view('admin.invoices.index', compact('invoices', 'stats'));
+        $months = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        
+        $years = Invoice::selectRaw('YEAR(created_at) as year')
+                    ->distinct()
+                    ->orderBy('year', 'desc')
+                    ->pluck('year');
+
+        return view('admin.invoices.index', compact('invoices', 'stats', 'months', 'years'));
     }
 
     public function create()
@@ -51,6 +64,7 @@ class InvoiceController extends Controller
             'customer_phone' => 'nullable|string|max:20',
             'customer_address' => 'nullable|string',
             'order_date' => 'required|date',
+            'event_date' => 'nullable|date',  
             'due_date' => 'nullable|date|after_or_equal:order_date',
             'dp_due_date' => 'nullable|date|after_or_equal:order_date',
             'notes' => 'nullable|string',
@@ -74,7 +88,6 @@ class InvoiceController extends Controller
             $total = $subtotal + $tax - $discount;
             $remainingAmount = $total - $dpAmount;
             
-            // Tentukan status DP
             $dpStatus = 'unpaid';
             if ($dpAmount >= $total) {
                 $dpStatus = 'paid';
@@ -82,13 +95,16 @@ class InvoiceController extends Controller
                 $dpStatus = 'partial';
             }
 
+            $invoiceNumber = $request->invoice_number ?? Invoice::generateInvoiceNumber();
+
             $invoice = Invoice::create([
-                'invoice_number' => $request->invoice_number,
+                'invoice_number' => $invoiceNumber,
                 'customer_name' => $request->customer_name,
                 'customer_email' => $request->customer_email,
                 'customer_phone' => $request->customer_phone,
                 'customer_address' => $request->customer_address,
                 'order_date' => $request->order_date,
+                'event_date' => $request->event_date,  
                 'due_date' => $request->due_date,
                 'subtotal' => $subtotal,
                 'tax' => $tax,
@@ -145,7 +161,9 @@ class InvoiceController extends Controller
             'customer_phone' => 'nullable|string|max:20',
             'customer_address' => 'nullable|string',
             'order_date' => 'required|date',
+            'event_date' => 'nullable|date',
             'due_date' => 'nullable|date|after_or_equal:order_date',
+            'status' => 'required|in:draft,approved,paid,cancelled',
             'dp_due_date' => 'nullable|date|after_or_equal:order_date',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
@@ -168,7 +186,6 @@ class InvoiceController extends Controller
             $total = $subtotal + $tax - $discount;
             $remainingAmount = $total - $dpAmount;
             
-            // Tentukan status DP
             $dpStatus = 'unpaid';
             if ($dpAmount >= $total) {
                 $dpStatus = 'paid';
@@ -176,12 +193,13 @@ class InvoiceController extends Controller
                 $dpStatus = 'partial';
             }
 
-            $invoice->update([
+            $updateData = [
                 'customer_name' => $request->customer_name,
                 'customer_email' => $request->customer_email,
                 'customer_phone' => $request->customer_phone,
                 'customer_address' => $request->customer_address,
                 'order_date' => $request->order_date,
+                'event_date' => $request->event_date,
                 'due_date' => $request->due_date,
                 'subtotal' => $subtotal,
                 'tax' => $tax,
@@ -192,9 +210,34 @@ class InvoiceController extends Controller
                 'dp_due_date' => $request->dp_due_date,
                 'total_amount' => $total,
                 'notes' => $request->notes,
-            ]);
+                'status' => $request->status,
+            ];
 
+            $oldStatus = $invoice->status;
+            $newStatus = $request->status;
 
+            if ($newStatus == 'approved') {
+                $updateData['approved_at'] = now();
+                $updateData['paid_at'] = null;
+            } elseif ($newStatus == 'paid') {
+                $updateData['paid_at'] = now();
+                if (is_null($invoice->approved_at)) {
+                    $updateData['approved_at'] = now();
+                }
+            } elseif ($newStatus == 'draft' || $newStatus == 'cancelled') {
+                $updateData['approved_at'] = null;
+                $updateData['paid_at'] = null;
+            }
+
+            if ($newStatus == 'paid' && $dpAmount < $total) {
+                $updateData['status'] = 'approved';
+                $updateData['paid_at'] = null;
+                if (is_null($invoice->approved_at)) {
+                    $updateData['approved_at'] = now();
+                }
+            }
+
+            $invoice->update($updateData);
             $invoice->items()->delete();
 
             foreach ($request->items as $item) {
@@ -210,8 +253,9 @@ class InvoiceController extends Controller
 
             DB::commit();
 
+            $statusMessage = $oldStatus != $newStatus ? " Status berubah dari {$oldStatus} menjadi {$newStatus}." : '';
             return redirect()->route('admin.invoices.show', $invoice)
-                ->with('success', 'Invoice berhasil diupdate');
+                ->with('success', 'Invoice berhasil diupdate.' . $statusMessage);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -221,16 +265,31 @@ class InvoiceController extends Controller
 
     public function destroy(Invoice $invoice)
     {
-        $invoice->delete();
-        return redirect()->route('admin.invoices.index')
-            ->with('success', 'Invoice berhasil dihapus');
+        try {
+            $invoiceNumber = $invoice->invoice_number;
+            $invoice->delete();
+            return redirect()->route('admin.invoices.index')
+                ->with('success', "Invoice {$invoiceNumber} berhasil dihapus");
+        } catch (\Exception $e) {
+            return redirect()->route('admin.invoices.index')
+                ->with('error', 'Gagal menghapus invoice: ' . $e->getMessage());
+        }
     }
 
     public function approve(Invoice $invoice)
     {
+        if ($invoice->dp_amount >= $invoice->total_amount) {
+            $status = 'paid';
+            $paidAt = now();
+        } else {
+            $status = 'approved';
+            $paidAt = null;
+        }
+        
         $invoice->update([
-            'status' => 'approved',
+            'status' => $status,
             'approved_at' => now(),
+            'paid_at' => $paidAt,
         ]);
 
         return back()->with('success', 'Invoice berhasil disetujui');
@@ -238,12 +297,49 @@ class InvoiceController extends Controller
 
     public function markAsPaid(Invoice $invoice)
     {
+        $dpAmount = $invoice->total_amount;
+        $remainingAmount = 0;
+        $dpStatus = 'paid';
+        
         $invoice->update([
             'status' => 'paid',
             'paid_at' => now(),
+            'dp_amount' => $dpAmount,
+            'remaining_amount' => $remainingAmount,
+            'dp_status' => $dpStatus,
         ]);
 
         return back()->with('success', 'Invoice ditandai sebagai Lunas');
+    }
+
+    public function updateDp(Request $request, Invoice $invoice)
+    {
+        $request->validate([
+            'dp_amount' => 'required|numeric|min:0|max:' . $invoice->total_amount,
+        ]);
+
+        $dpAmount = $request->dp_amount;
+        $remainingAmount = $invoice->total_amount - $dpAmount;
+        
+        if ($dpAmount >= $invoice->total_amount) {
+            $dpStatus = 'paid';
+            $invoice->update([
+                'status' => 'paid',
+                'paid_at' => now(),
+            ]);
+        } elseif ($dpAmount > 0) {
+            $dpStatus = 'partial';
+        } else {
+            $dpStatus = 'unpaid';
+        }
+        
+        $invoice->update([
+            'dp_amount' => $dpAmount,
+            'remaining_amount' => $remainingAmount,
+            'dp_status' => $dpStatus,
+        ]);
+
+        return back()->with('success', 'DP berhasil diupdate');
     }
 
     public function cancel(Invoice $invoice)
@@ -255,12 +351,25 @@ class InvoiceController extends Controller
         return back()->with('success', 'Invoice dibatalkan');
     }
 
+    public function settle(Invoice $invoice)
+    {
+        $invoice->update([
+            'dp_amount' => $invoice->total_amount,
+            'remaining_amount' => 0,
+            'dp_status' => 'paid',
+            'status' => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        return back()->with('success', 'Pelunasan berhasil, invoice telah lunas');
+    }
+
     public function generatePdf(Invoice $invoice)
     {
         $invoice->load('items');
         $pdf = Pdf::loadView('admin.invoices.pdf', compact('invoice'));
         
-        $fileName = 'invoice-' . $invoice->id . '-' . date('Ymd_His') . '.pdf';
+        $fileName = 'invoice-' . $invoice->invoice_number . '.pdf';
         
         return $pdf->download($fileName);
     }
@@ -270,8 +379,39 @@ class InvoiceController extends Controller
         $invoice->load('items');
         $pdf = Pdf::loadView('admin.invoices.pdf', compact('invoice'));
         
-        $fileName = 'invoice-' . $invoice->id . '-' . date('Ymd_His') . '.pdf';
+        $fileName = 'invoice-' . $invoice->invoice_number . '.pdf';
         
         return $pdf->stream($fileName);
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $query = Invoice::query();
+
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('created_at', [
+                $request->start_date . ' 00:00:00',
+                $request->end_date . ' 23:59:59'
+            ]);
+        }
+
+        if ($request->filled('month') && $request->filled('year')) {
+            $query->whereMonth('created_at', $request->month)
+                  ->whereYear('created_at', $request->year);
+        }
+
+        if ($request->filled('status') && $request->status != 'all') {
+            $query->where('status', $request->status);
+        }
+
+        $invoices = $query->orderBy('created_at', 'desc')->get();
+
+        if ($invoices->isEmpty()) {
+            return back()->with('error', 'Tidak ada data untuk diexport!');
+        }
+
+        $fileName = 'laporan_invoice_' . date('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(new InvoicesExport($invoices), $fileName);
     }
 }

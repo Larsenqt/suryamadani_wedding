@@ -8,22 +8,23 @@ use App\Http\Controllers\Admin\TestimonialController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Customer\CustomerOrderController;
 use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\WelcomeController;
 
 
-// Welcome Page
 Route::get('/', [WelcomeController::class, 'index']);
 Route::get('/testimonials/paginate', [WelcomeController::class, 'getTestimonials'])->name('testimonials.paginate');
 
-// Admin Routes (Role: admin)
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('item-types', ItemTypeController::class)->except(['show']);
     Route::resource('items', ItemController::class)->except(['show']);
     Route::resource('testimonials', TestimonialController::class);
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+    Route::delete('/orders/{uuid}', [OrderController::class, 'destroy'])->name('orders.destroy');
+    Route::delete('/orders/bulk-destroy', [OrderController::class, 'bulkDestroy'])->name('orders.bulk-destroy');
     Route::get('/orders/{uuid}', [OrderController::class, 'show'])->name('orders.show');
     Route::get('/orders/{uuid}/edit', [OrderController::class, 'edit'])->name('orders.edit');
     Route::put('/orders/{uuid}', [OrderController::class, 'update'])->name('orders.update');
@@ -40,6 +41,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/invoices/{invoice}/cancel', [\App\Http\Controllers\Admin\InvoiceController::class, 'cancel'])->name('invoices.cancel');
     Route::get('/invoices/{invoice}/pdf', [\App\Http\Controllers\Admin\InvoiceController::class, 'generatePdf'])->name('invoices.pdf');
     Route::get('/invoices/{invoice}/preview', [\App\Http\Controllers\Admin\InvoiceController::class, 'previewPdf'])->name('invoices.preview-pdf');
+    Route::get('/invoices/export/excel', [InvoiceController::class, 'exportExcel'])->name('invoices.export.excel');
+    Route::post('/invoices/{invoice}/settle', [InvoiceController::class, 'settle'])->name('invoices.settle');
 });
 
 // Customer Routes (Role: customer)
@@ -67,7 +70,6 @@ Route::get('/dashboard', function () {
     return redirect()->route('customer.catalog');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// Profile Routes
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

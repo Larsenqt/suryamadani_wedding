@@ -43,6 +43,23 @@
                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500">
                             </div>
                             <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Event Date (Tanggal Acara)</label>
+                                <input type="date" name="event_date" value="{{ $invoice->event_date ? $invoice->event_date->format('Y-m-d') : '' }}"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500">
+                                <p class="text-xs text-gray-500 mt-1">Tanggal pelaksanaan acara/pemesanan</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Status Invoice</label>
+                                <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500">
+                                    <option value="draft" {{ $invoice->status == 'draft' ? 'selected' : '' }}>Draft</option>
+                                    <option value="approved" {{ $invoice->status == 'approved' ? 'selected' : '' }}>Approved</option>
+                                    <option value="paid" {{ $invoice->status == 'paid' ? 'selected' : '' }}>Paid</option>
+                                    <option value="cancelled" {{ $invoice->status == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                </select>
+                            </div>
+                        
+                            <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Due Date</label>
                                 <input type="date" name="due_date" value="{{ $invoice->due_date ? $invoice->due_date->format('Y-m-d') : '' }}"
                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500">
@@ -239,13 +256,11 @@
         
         document.getElementById('totalDisplay').innerHTML = 'Rp ' + total.toLocaleString('id-ID');
         
-        // Update preview total
         const totalPreview = document.getElementById('totalDisplayPreview');
         if (totalPreview) {
             totalPreview.innerText = 'Rp ' + total.toLocaleString('id-ID');
         }
         
-        // Calculate remaining after DP
         calculateRemaining();
     }
 
@@ -262,7 +277,6 @@
         
         let dp = 0;
         if (dpInput) {
-            // Ambil nilai bersih tanpa titik
             dp = parseFloat(dpInput.value.replace(/[^\d]/g, '')) || 0;
         }
         

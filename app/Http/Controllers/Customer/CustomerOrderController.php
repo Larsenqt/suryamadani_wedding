@@ -9,7 +9,6 @@ use App\Models\OrderDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use App\Services\WhatsAppService;
 
 class CustomerOrderController extends Controller
 {
@@ -25,7 +24,7 @@ class CustomerOrderController extends Controller
             $query->where('name', 'like', '%' . $request->search . '%');
         }
         
-        $items = $query->latest()->paginate(12); // 12 item per halaman
+        $items = $query->latest()->paginate(12); 
         $itemTypes = \App\Models\ItemType::all();
         
         return view('customer.catalog', compact('items', 'itemTypes'));
@@ -102,7 +101,6 @@ class CustomerOrderController extends Controller
         DB::beginTransaction();
         
         try {
-            // Cek stok
             foreach ($request->items as $itemData) {
                 $item = Item::findOrFail($itemData['id']);
                 if ($item->stock < $itemData['qty']) {
@@ -114,7 +112,6 @@ class CustomerOrderController extends Controller
                 }
             }
             
-            // Buat order dengan alamat dan nomor telepon
             $order = Order::create([
                 'uuid' => (string) \Illuminate\Support\Str::uuid(),
                 'user_id' => auth()->id(),
@@ -128,7 +125,6 @@ class CustomerOrderController extends Controller
             
             $total = 0;
             
-            // Buat order details
             foreach ($request->items as $itemData) {
                 $item = Item::findOrFail($itemData['id']);
                 $subtotal = $itemData['qty'] * $item->price;
@@ -144,19 +140,13 @@ class CustomerOrderController extends Controller
                 $total += $subtotal;
             }
             
-            // Update total price
             $order->update([
                 'total_price' => $total
             ]);
             
             DB::commit();
             
-            // Clear cart session
             session()->forget('cart');
-        
-            // Kirim notifikasi WhatsApp
-            $this->sendWhatsAppNotification($order);
-            
             return response()->json([
                 'success' => true,
                 'message' => 'Pesanan berhasil dibuat!',
@@ -232,50 +222,4 @@ class CustomerOrderController extends Controller
         return view('customer.dashboard', compact('totalOrders', 'pendingOrders', 'completedOrders', 'recentOrders'));
     }
     
-    private function sendWhatsAppNotification($order)
-    {
-        try {
-            $order->load(['user', 'details.item']);
-            
-            $message = "🛍️ *PESANAN BARU!*\n\n";
-            $message .= "━━━━━━━━━━━━━━━━━━━━\n";
-            $message .= "📋 *Detail Pesanan*\n";
-            $message .= "━━━━━━━━━━━━━━━━━━━━\n";
-            $message .= "🆔 Order ID: {$order->uuid}\n";
-            $message .= "👤 Pelanggan: {$order->user->name}\n";
-            $message .= "📞 No. HP: {$order->phone}\n";
-            $message .= "📧 Email: {$order->user->email}\n";
-            $message .= "📍 Alamat: {$order->address}\n";
-            $message .= "📅 Tanggal Sewa: " . date('d/m/Y', strtotime($order->order_date)) . "\n";
-            $message .= "⏰ Waktu Order: " . $order->created_at->format('d/m/Y H:i') . "\n\n";
-            
-            if ($order->notes) {
-                $message .= "📝 Catatan: {$order->notes}\n\n";
-            }
-            
-            $message .= "━━━━━━━━━━━━━━━━━━━━\n";
-            $message .= "📦 *Item yang Dipesan*\n";
-            $message .= "━━━━━━━━━━━━━━━━━━━━\n";
-            
-            foreach ($order->details as $detail) {
-                $message .= "• {$detail->item->name}\n";
-                $message .= "  Jumlah: {$detail->qty} x Rp " . number_format($detail->price, 0, ',', '.') . "\n";
-                $message .= "  Subtotal: Rp " . number_format($detail->subtotal, 0, ',', '.') . "\n\n";
-            }
-            
-            $message .= "━━━━━━━━━━━━━━━━━━━━\n";
-            $message .= "💰 *TOTAL: Rp " . number_format($order->total_price, 0, ',', '.') . "*\n";
-            $message .= "━━━━━━━━━━━━━━━━━━━━\n\n";
-            
-            $message .= "🔗 *Link Admin:* " . route('admin.orders.show', $order->uuid) . "\n\n";
-            $message .= "✅ Segera lakukan approve pesanan!";
-            
-            $adminPhone = env('ADMIN_PHONE_NUMBER', '628134648067');
-            
-            \Log::info('WhatsApp Notification: ' . $message);
-            
-        } catch (\Exception $e) {
-            \Log::error('WhatsApp notification failed: ' . $e->getMessage());
-        }
-    }
 }
